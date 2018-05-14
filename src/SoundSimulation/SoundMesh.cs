@@ -17,6 +17,8 @@ namespace SoundSimulation
         public Vector2 Force;
 
         public MeshNode[] Neighbors;
+
+        public double[] InitialNeighborDistances;
     }
 
     class SoundMesh
@@ -34,7 +36,8 @@ namespace SoundSimulation
 
         private double _simulationDt;
 
-        private List<FrequencyGenerator> _frequencyGenerators;
+        private List<Speaker> _speakers;
+        private List<Microphone> _microphones;
 
         public SoundMesh(int rows, int cols, float spacing)
         {
@@ -42,13 +45,10 @@ namespace SoundSimulation
             _cols = cols;
             _spacing = spacing;
 
-            InitializeMesh();
+            _speakers = new List<Speaker>();
+            _microphones = new List<Microphone>();
 
-            _frequencyGenerators = new List<FrequencyGenerator>
-            {
-                new FrequencyGenerator(_nodes[10, 10], 3000),
-                new FrequencyGenerator(_nodes[50, 90], 4000)
-            };
+            InitializeMesh();
         }
 
         private void InitializeMesh()
@@ -75,7 +75,10 @@ namespace SoundSimulation
             {
                 for (int x = 0; x < _cols; x++)
                 {
+                    var currentNode = _nodes[y, x];
+
                     var neighbors = new List<MeshNode>();
+                    var initialDistances = new List<double>();
 
                     for (int dy = -1; dy <= 1; dy++)
                     {
@@ -91,17 +94,50 @@ namespace SoundSimulation
                             if (y + dy >= 0 && y + dy < _rows &&
                                 x + dx >= 0 && x + dx < _cols)
                             {
-                                neighbors.Add(_nodes[targetY, targetX]);
+                                var targetNode = _nodes[targetY, targetX];
+
+                                Vector2 difference = currentNode.Position - targetNode.Position;
+
+                                neighbors.Add(targetNode);
+                                initialDistances.Add(difference.Length());
                             }
                         }
                     }
 
-                    _nodes[y, x].Neighbors = neighbors.ToArray();
+                    currentNode.Neighbors = neighbors.ToArray();
+                    currentNode.InitialNeighborDistances = initialDistances.ToArray();
                 }
             }
         }
 
-        public void Simulate(int sampleRate)
+        public void AddSpeaker(Speaker speaker)
+        {
+            _speakers.Add(speaker);
+        }
+
+        public void AddMicrophone(Microphone microphone)
+        {
+            _microphones.Add(microphone);
+        }
+
+        public MeshNode GetNode(int row, int col)
+        {
+            return _nodes[row, col];
+        }
+
+        public List<MeshNode> GetColumn(int col)
+        {
+            var nodes = new List<MeshNode>();
+
+            for (int x = 0; x < _rows; x++)
+            {
+                nodes.Add(_nodes[x, col]);
+            }
+
+            return nodes;
+        }
+
+        public void Simulate(uint sampleRate)
         {
             ElapsedSimulationTime = 0;
             _simulationDt = 1.0 / sampleRate;
@@ -121,11 +157,6 @@ namespace SoundSimulation
         {
             while (_isActive)
             {
-                foreach (FrequencyGenerator generator in _frequencyGenerators)
-                {
-                    generator.Update(ElapsedSimulationTime);
-                }
-
                 // Sum all the forces on each node
                 Parallel.For(0, _rows, y =>
                 {
@@ -135,20 +166,27 @@ namespace SoundSimulation
 
                         if (node.Fixed) continue;
 
-                        node.Force = Vector2.Zero;
+                        node.Force.X = 0;
+                        node.Force.Y = 0;
 
-                        foreach (MeshNode neighbor in node.Neighbors)
+                        for (var i = 0; i < node.Neighbors.Length; i++)
                         {
-                            Vector2 difference = neighbor.Position - node.Position;
+                            Vector2 difference = node.Neighbors[i].Position - node.Position;
 
                             double length = difference.Length();
 
-                            if (length > 0.1)
+                            double displacement = length - node.InitialNeighborDistances[i];
+
+                            if (displacement > 0.001)
                             {
-                                node.Force += difference * 1000000000;
+                                Vector2 normal = difference / length;
+
+                                Vector2 force = normal * displacement * 100000000;
+
+                                node.Force += force;
                             }
 
-                            node.Force += node.Velocity * -200f;
+                            node.Force += node.Velocity * -50.0f;
                         }
                     }
                 });
@@ -167,6 +205,16 @@ namespace SoundSimulation
                     }
                 });
 
+                foreach (Speaker speaker in _speakers)
+                {
+                    speaker.Update(ElapsedSimulationTime);
+                }
+
+                foreach (Microphone microphone in _microphones)
+                {
+                    microphone.Update(ElapsedSimulationTime);
+                }
+
                 ElapsedSimulationTime += _simulationDt;
             }
         }
@@ -181,7 +229,7 @@ namespace SoundSimulation
                 {
                     MeshNode node = _nodes[y, x];
 
-                    rectangles.Add(new RectangleF((float)node.Position.X, (float)node.Position.Y, 7, 7));
+                    rectangles.Add(new RectangleF((float)node.Position.X, (float)node.Position.Y, 4, 4));
                 }
             }
 

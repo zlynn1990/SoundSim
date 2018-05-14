@@ -57,9 +57,14 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="FpsManager.cs" />
-    <Compile Include="FrequencyGenerator.cs" />
+    <Compile Include="Generation\FrequencyGenerator.cs" />
+    <Compile Include="Generation\ISoundGenerator.cs" />
+    <Compile Include="Generation\WavGenerator.cs" />
+    <Compile Include="Microphone.cs" />
     <Compile Include="SoundMesh.cs" />
+    <Compile Include="Speaker.cs" />
     <Compile Include="Vector2.cs" />
+    <Compile Include="WavFile.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
