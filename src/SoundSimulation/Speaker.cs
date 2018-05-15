@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Drawing;
 using SoundSimulation.Generation;
 
 namespace SoundSimulation
@@ -13,6 +11,8 @@ namespace SoundSimulation
 
         private List<MeshNode> _nodes;
         private List<Vector2> _initialNodePositions;
+
+        private Brush _brush;
 
         public Speaker(ISoundGenerator generator, SoundMesh mesh, int meshColumn)
         {
@@ -26,6 +26,8 @@ namespace SoundSimulation
             {
                 _initialNodePositions.Add(new Vector2(node.Position.X, node.Position.Y));
             }
+
+            _brush = new SolidBrush(Color.Green);
         }
 
         public void Update(double elapsedTime)
@@ -35,6 +37,14 @@ namespace SoundSimulation
             for (int i = 0; i < _nodes.Count; i++)
             {
                 _nodes[i].Position.X = _initialNodePositions[i].X + amplitude * 50;
+            }
+        }
+
+        public void Draw(Graphics graphics)
+        {
+            foreach (MeshNode node in _nodes)
+            {
+                graphics.FillRectangle(_brush, node.GetBounds());
             }
         }
     }

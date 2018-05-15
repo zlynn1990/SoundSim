@@ -25,6 +25,9 @@ namespace SoundSimulation
         private const int ScreenWidth = 1280;
         private const int ScreenHeight = 720;
 
+        private const int MeshRows = 100;
+        private const int MeshCols = 100;
+
         private const uint SampleRate = 44100;
 
         private Bitmap _imageBitmap;
@@ -36,6 +39,8 @@ namespace SoundSimulation
         private WavFile _inputFile;
 
         private SoundMesh _soundMesh;
+
+        private Speaker _speaker;
         private Microphone _microphone;
 
         public MainWindow()
@@ -44,14 +49,14 @@ namespace SoundSimulation
 
             InitializeComponent();
 
-            _soundMesh = new SoundMesh(40, 40, 5);
+            _soundMesh = new SoundMesh(MeshRows, MeshCols, 6);
 
-            //var speaker = new Speaker(new FrequencyGenerator(440), _soundMesh, 1);
-            var speaker = new Speaker(new WavGenerator(_inputFile), _soundMesh, 1);
+            _speaker = new Speaker(new FrequencyGenerator(220), _soundMesh, 1);
+            //_speaker = new Speaker(new WavGenerator(_inputFile), _soundMesh, 1);
 
-            _soundMesh.AddSpeaker(speaker);
+            _soundMesh.AddSpeaker(_speaker);
 
-            _microphone = new Microphone(_soundMesh, 20, 20);
+            _microphone = new Microphone(_soundMesh, MeshRows / 2, MeshCols / 4);
             _soundMesh.AddMicrophone(_microphone);
 
             _imageBitmap = new Bitmap(ScreenWidth, ScreenHeight, PixelFormat.Format32bppArgb);
@@ -70,7 +75,6 @@ namespace SoundSimulation
 
             var font = new Font("Verdana Bold", 14);
             var textBrush = new SolidBrush(Color.White);
-            var meshBrush = new SolidBrush(Color.Red);
 
             _soundMesh.Simulate(SampleRate);
 
@@ -81,11 +85,10 @@ namespace SoundSimulation
                 using (Graphics graphics = Graphics.FromImage(_imageBitmap))
                 {
                     graphics.Clear(Color.Black);
-                    graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
 
-                    RectangleF[] meshPositions = _soundMesh.GetSnapshot();
-
-                    graphics.FillRectangles(meshBrush, meshPositions);
+                    _soundMesh.Draw(graphics);
+                    _speaker.Draw(graphics);
+                    _microphone.Draw(graphics);
 
                     graphics.DrawString($"FPS: {frameTimer.CurrentFps}", font, textBrush, 0, 0);
                     graphics.DrawString($"Elapsed Time: {Math.Round(_soundMesh.ElapsedSimulationTime, 5)}", font, textBrush, 0, 30);

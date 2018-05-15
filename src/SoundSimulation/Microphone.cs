@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 
 namespace SoundSimulation
 {
@@ -10,6 +11,8 @@ namespace SoundSimulation
 
         private readonly List<double> _amplitudes;
 
+        private Brush _brush;
+
         public Microphone(SoundMesh soundMesh, int row, int col)
         {
             _listeningNode = soundMesh.GetNode(row, col);
@@ -17,6 +20,8 @@ namespace SoundSimulation
             _initialNodePosition = new Vector2(_listeningNode.Position.X, _listeningNode.Position.Y);
 
             _amplitudes = new List<double>();
+
+            _brush = new SolidBrush(Color.Blue);
         }
 
         public void Update(double elapsedTime)
@@ -24,6 +29,11 @@ namespace SoundSimulation
             double difference = _listeningNode.Position.X - _initialNodePosition.X;
 
             _amplitudes.Add(difference);
+        }
+
+        public void Draw(Graphics graphics)
+        {
+            graphics.FillRectangle(_brush, _listeningNode.GetBounds());
         }
 
         public void SaveRecording(string outputPath, uint sampleRate)

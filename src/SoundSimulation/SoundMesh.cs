@@ -19,6 +19,11 @@ namespace SoundSimulation
         public MeshNode[] Neighbors;
 
         public double[] InitialNeighborDistances;
+
+        public RectangleF GetBounds()
+        {
+            return new RectangleF((float)Position.X, (float)Position.Y, 5, 5);
+        }
     }
 
     class SoundMesh
@@ -39,6 +44,8 @@ namespace SoundSimulation
         private List<Speaker> _speakers;
         private List<Microphone> _microphones;
 
+        private Brush _brush;
+
         public SoundMesh(int rows, int cols, float spacing)
         {
             _rows = rows;
@@ -48,13 +55,42 @@ namespace SoundSimulation
             _speakers = new List<Speaker>();
             _microphones = new List<Microphone>();
 
-            InitializeMesh();
-        }
-
-        private void InitializeMesh()
-        {
             _nodes = new MeshNode[_rows, _cols];
 
+            _brush = new SolidBrush(Color.White);
+
+            if (_rows == 1)
+            {
+                Initialize1DMesh();
+            }
+            else
+            {
+                Initialize2DMesh();
+            }
+
+            ConnectMesh();
+        }
+
+        private void Initialize1DMesh()
+        {
+            // Initialize all nodes and fix any nodes on the edges
+            for (int y = 0; y < _rows; y++)
+            {
+                for (int x = 0; x < _cols; x++)
+                {
+                    _nodes[y, x] = new MeshNode
+                    {
+                        Fixed = x == 0 || x == _cols - 1,
+                        Position = new Vector2(x * _spacing, y * _spacing + 60),
+                        Velocity = Vector2.Zero,
+                        Force = Vector2.Zero
+                    };
+                }
+            }
+        }
+
+        private void Initialize2DMesh()
+        {
             // Initialize all nodes and fix any nodes on the edges
             for (int y = 0; y < _rows; y++)
             {
@@ -69,8 +105,10 @@ namespace SoundSimulation
                     };
                 }
             }
+        }
 
-            // Initialize node neighbors (must be done after nodes are setup)
+        private void ConnectMesh()
+        {
             for (int y = 0; y < _rows; y++)
             {
                 for (int x = 0; x < _cols; x++)
@@ -108,6 +146,7 @@ namespace SoundSimulation
                     currentNode.InitialNeighborDistances = initialDistances.ToArray();
                 }
             }
+
         }
 
         public void AddSpeaker(Speaker speaker)
@@ -181,7 +220,7 @@ namespace SoundSimulation
                             {
                                 Vector2 normal = difference / length;
 
-                                Vector2 force = normal * displacement * 100000000;
+                                Vector2 force = normal * displacement * 100000000.0f;
 
                                 node.Force += force;
                             }
@@ -219,7 +258,7 @@ namespace SoundSimulation
             }
         }
 
-        public RectangleF[] GetSnapshot()
+        public void Draw(Graphics graphics)
         {
             var rectangles = new List<RectangleF>();
 
@@ -229,11 +268,11 @@ namespace SoundSimulation
                 {
                     MeshNode node = _nodes[y, x];
 
-                    rectangles.Add(new RectangleF((float)node.Position.X, (float)node.Position.Y, 4, 4));
+                    rectangles.Add(node.GetBounds());
                 }
             }
 
-            return rectangles.ToArray();
+            graphics.FillRectangles(_brush, rectangles.ToArray());
         }
     }
 }
